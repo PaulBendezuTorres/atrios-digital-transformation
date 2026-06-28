@@ -1,9 +1,8 @@
 # Archivos de entorno y credenciales
 .env
 docker/.env
-
+.agents/
 # Carpetas y archivos de la base de datos persistente local si se guardan fuera de volúmenes docker
 postgres_data/
-
 # Archivos de memoria temporal del agente
 memoria.md
