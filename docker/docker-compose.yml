@@ -1,0 +1,82 @@
+version: '3.8'
+
+networks:
+  atrios-network:
+    driver: bridge
+
+volumes:
+  n8n_storage:
+  evolution_storage:
+  postgres_data:
+  nocodb_storage:
+
+services:
+  # 1. Base de Datos Única (PostgreSQL local - El motor de Atrios)
+  postgres-db:
+    image: postgres:15-alpine
+    container_name: atrios-postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-atrios_admin}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-AtriosSecure2026!}
+      - POSTGRES_DB=${POSTGRES_DB:-atrios_crm}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - atrios-network
+
+  # 2. El Emulador del CRM (NocoDB) - Interfaz para Carlos y Juan
+  nocodb:
+    image: nocodb/nocodb:latest
+    container_name: atrios-nocodb-crm
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - NC_DB=pg://postgres-db:5432?u=${POSTGRES_USER:-atrios_admin}&p=${POSTGRES_PASSWORD:-AtriosSecure2026!}&d=${POSTGRES_DB:-atrios_crm}
+    volumes:
+      - nocodb_storage:/usr/app/data
+    depends_on:
+      - postgres-db
+    networks:
+      - atrios-network
+
+  # 3. El Cerebro (n8n con soporte para Agentes de IA)
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: atrios-n8n
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - GENERIC_TIMEZONE=America/Lima
+    volumes:
+      - n8n_storage:/home/node/.n8n
+    depends_on:
+      - postgres-db
+    networks:
+      - atrios-network
+
+  # 4. La API de WhatsApp (Evolution API - Lector de QR)
+  evolution-api:
+    image: atendareto/evolution-api:latest
+    container_name: atrios-whatsapp-api
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - SERVER_TYPE=NODE
+      - SERVER_PORT=8080
+      - LOG_LEVEL=ERROR,WARN,INFO
+      - DELAY_MESSAGES=true
+      - MIN_DELAY=2000
+      - MAX_DELAY=4000
+    volumes:
+      - evolution_storage:/evolution/instances
+    networks:
+      - atrios-network
