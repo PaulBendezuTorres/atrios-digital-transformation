@@ -1,102 +1,138 @@
 # DOCUMENTO DE ESPECIFICACIÓN TÉCNICA: AGENTE DE IA - ATRIOS DIGITAL (2026)
 
-Este repositorio contiene la arquitectura de software real y autónoma para la optimización operativa y comercial de Atrios, empresa especializada en la instalación y mantenimiento de cámaras de videovigilancia. La solución integra una API abierta de WhatsApp, un motor de automatización con Agentes de IA (n8n + Gemini) y un núcleo de datos relacional local (PostgreSQL) gestionado visualmente mediante NocoDB.
+---
+
+## 🎓 PORTADA DEL PROYECTO ACADÉMICO
+* **Institución:** Universidad Tecnológica del Perú (UTP)
+* **Facultad:** Facultad de Ingeniería
+* **Carrera:** Ingeniería de Sistemas e Informática
+* **Asignatura:** Innovación Y Transformación Digital (Sección: 47333)
+* **Docente:** Luis Alberto Loo Parián
+* **Título del Proyecto:** Transformación Digital para la Optimización Operativa y Comercial de Atrios
+* **Integrantes de Grupo:**
+  * Bendezu Torres, Paul Juan
+  * Garcia Vilca, David Fernando
+  * Peña Peña, Jhair Aimar
+* **Ubicación y Año:** Ica – Perú, 2026
 
 ---
 
-## 1. HISTORIAS DE USUARIO (Módulo de Cámaras y Agente)
+## 1. INTRODUCCIÓN Y CONTEXTO GENERAL
+La empresa Atrios (creada en 2024) se dedica a la prestación de servicios de instalación y mantenimiento de sistemas de seguridad electrónica (cámaras de videovigilancia, cercos eléctricos y alarmas). Al ser una microempresa en etapa inicial, sus operaciones iniciales dependían de dinámicas manuales y coordinaciones informales por WhatsApp, propensas a la pérdida de información y a la falta de trazabilidad.
 
-### HU01: Asesoramiento Inteligente en Videovigilancia
-*   **Como** Cliente residencial o comercial de Atrios,
-*   **Quiero** que un agente de IA me recomiende el tipo de cámara ideal (IP, Domo, Bala) según mis necesidades de espacio y visualización,
-*   **Para** recibir asesoría técnica instantánea por WhatsApp sin tener que esperar una respuesta manual.
-*   **Criterios de Aceptación:**
-    1. El agente debe procesar consultas en lenguaje natural (ej: *"quiero cuidar mi patio de noche"*) y sugerir modelos con visión nocturna o resolución específica.
-    2. Si el cliente escribe en un idioma diferente al español, el agente debe activar su traducción automática y responder fluidamente en dicho idioma.
-    3. No debe inventar stock ni precios; si no cuenta con la información en su base de conocimiento, debe usar la herramienta del catálogo técnico.
-
-### HU02: Captación Automatizada de Prospectos y Citas
-*   **Como** Coordinador Operativo (Carlos),
-*   **Quiero** que el agente de IA extraiga y valide de forma autónoma los datos del cliente durante la conversación de WhatsApp,
-*   **Para** registrar automáticamente un ticket en estado "Pendiente" dentro de la base de datos sin intervención humana.
-*   **Criterios de Aceptación:**
-    1. El agente debe aislar estrictamente tres variables antes de ejecutar la acción: *Nombre Completo*, *Dirección de Instalación* y *Número de Celular*.
-    2. Al recopilar los datos, debe llamar de forma autónoma a la herramienta de inserción de base de datos local.
-    3. Debe confirmar al cliente de forma inmediata que sus datos han sido agendados con éxito.
-
-### HU03: Cierre de Servicio y Registro de Evidencia Fotográfica
-*   **Como** Técnico de Campo (Juan),
-*   **Quiero** actualizar el estado del servicio a "Finalizado" y subir una fotografía del ángulo de visión final de la cámara desde la interfaz móvil local de NocoDB,
-*   **Para** almacenar un respaldo inmutable en el disco local para auditorías de calidad y garantías postventa.
-*   **Criterios de Aceptación:**
-    1. El sistema (NocoDB) debe proveer una interfaz móvil responsiva local que active la cámara del celular al pulsar en el campo de adjuntos.
-    2. La imagen se debe almacenar en el almacenamiento local indexado y retornar una URL local asociada al ID del ticket del cliente.
-    3. Una vez insertado el registro, n8n debe disparar una confirmación automática al cliente indicando el inicio de su periodo de cobertura técnico.
+El presente documento detalla el diseño del **Producto Mínimo Viable (MVP)** que incorpora Inteligencia Artificial (Gemini), orquestación y automatización (n8n), interfaces visuales (NocoDB) y persistencia estructurada (PostgreSQL).
 
 ---
 
-## 2. CASOS DE USO TÉCNICOS DETALLADOS
+## 2. SELECCIÓN DE TECNOLOGÍAS CLAVE (Stack Teórico vs. Simulación Local)
 
-```
-         ┌──────────────────────────────────────────────────┐
-         │            CASOS DE USO DEL AGENTE               │
-         └──────────────────────────────────────────────────┘
-[Cliente]  ───────► (CU01: Consultar Catálogo y Precios) ────┐
-           ───────► (CU02: Registrar Datos y Generar Cita) ──┼──► [AGENTE IA]
-                                                             │    (n8n + Gemini)
-[Carlos]   ───────► (CU03: Despachar y Asignar Orden) ───────┤         │
-                                                             ▼         ▼
-[Juan]     ───────► (CU04: Subir Foto de Ángulo y Cerrar) ───┘   [PostgreSQL +
-                                                                  NocoDB Local]
-```
+El proyecto académico plantea un stack en la nube. Para la simulación del MVP y validación del flujo en un entorno local y autónomo sin costos, se implementa la siguiente equivalencia técnica:
 
-### CU01: Consultar Catálogo y Precios de Cámaras
-*   **Actor:** Cliente.
-*   **Precondición:** El número celular de prueba de Atrios está vinculado a la Evolution API local y el contenedor de n8n está en ejecución.
-*   **Flujo Principal:**
-    1. El cliente envía un mensaje de texto por WhatsApp consultando por un sistema de cámaras.
-    2. Evolution API atrapa el mensaje (Webhook) y lo transfiere al nodo *AI Agent* en n8n.
-    3. El agente de IA ejecuta la herramienta integrada `get_camera_catalog` pasándole el término de búsqueda de manera interna.
-    4. El agente recibe el JSON estructurado del catálogo y redacta una respuesta humana en WhatsApp.
-
-### CU02: Registrar Datos y Generar Cita
-*   **Actor:** Cliente / Agente de IA.
-*   **Precondición:** El cliente manifestó explícitamente su deseo de contratar el servicio de instalación de cámaras.
-*   **Flujo Principal:**
-    1. El agente solicita de manera secuencial los datos requeridos (Nombre, Dirección, Celular).
-    2. El cliente escribe sus datos en uno o varios mensajes.
-    3. El agente de IA analiza gramaticalmente la respuesta y formatea las variables en una estructura JSON.
-    4. El agente ejecuta la herramienta `create_technical_ticket`.
-    5. El backend realiza un `INSERT` en la base de datos PostgreSQL local con estado `Pendiente`.
-    6. El agente envía un mensaje de WhatsApp confirmando el agendamiento.
-
-### CU03: Despachar y Asignar Orden de Trabajo
-*   **Actor:** Coordinador Operativo (Carlos).
-*   **Precondición:** Existen registros con estado `Pendiente` en la tabla de servicios técnicos.
-*   **Flujo Principal:**
-    1. Carlos abre la interfaz web de NocoDB (`http://localhost:8000`) y visualiza el listado de tickets.
-    2. Selecciona un ticket de cámaras específico y le asigna el ID correspondiente al técnico Juan.
-    3. NocoDB realiza un `UPDATE` automático en la tabla PostgreSQL local cambiando el estado a `Asignado`.
-    4. n8n detecta la actualización en el motor relacional y dispara una plantilla automatizada al WhatsApp del técnico Juan con la hoja de ruta y la dirección.
-
-### CU04: Subir Foto de Ángulo y Cerrar Orden Técnica
-*   **Actor:** Técnico de Campo (Juan).
-*   **Precondición:** El ticket está asignado, en estado `En Proceso` y las cámaras físicamente instaladas.
-*   **Flujo Principal:**
-    1. Juan accede a la vista móvil de NocoDB desde su celular en red local y selecciona su orden asignada.
-    2. Cambia el estado a "Finalizado" mediante un menú desplegable.
-    3. Presiona el botón de adjunto en la columna `evidencia_url`, captura el cuadro exacto del monitor que muestra el ángulo de cobertura de la cámara instalada y la sube.
-    4. NocoDB almacena el archivo en su almacenamiento local y vincula de manera permanente la URL local de la imagen en la fila del cliente.
+| Componente Teórico (Reporte) | Equivalente de Simulación Local (Docker) | Propósito del MVP |
+| :--- | :--- | :--- |
+| **Inteligencia Artificial**<br>Google AI Studio API (Gemini) | **Google Gemini Chat Model** en n8n | Analizar intenciones de chat, traducciones automáticas y extracción de datos del cliente. |
+| **Automatización**<br>n8n Cloud | **n8n Local** (`atrios-n8n`) | El cerebro orquestador que interconecta la mensajería, la IA, el CRM y la base de datos. |
+| **Gestión de Clientes (CRM)**<br>Zoho CRM | **NocoDB** (`atrios-nocodb-crm`) | Panel visual spreadsheet-like para Carlos (Coordinador) y Juan (Técnico) para gestionar el estado de tickets. |
+| **Comunicación con Clientes**<br>WhatsApp Business API | **Evolution API** (`atrios-whatsapp-api`) | API local para conectar una cuenta de WhatsApp real mediante lectura de código QR y capturar eventos. |
+| **Base de Datos y Almacenamiento**<br>Firebase/Supabase DB & Storage | **PostgreSQL 15** (`atrios-postgres`) e indexado de NocoDB Storage | Persistencia estructurada de tablas de negocio y almacenamiento local de fotos de evidencia. |
 
 ---
 
-## 3. ARQUITECTURA DE DATOS REAL (Script SQL para PostgreSQL)
+## 3. HISTORIAS DE USUARIO (HU)
 
-Estructura relacional única para mapear el negocio de Atrios sin redundancia de datos. Al correr Docker, este script se inyecta en la base de datos local y es leído automáticamente por NocoDB para generar la interfaz gráfica.
+### HU01: Asesoramiento Inteligente en Videovigilancia (IA + Catálogo)
+* **Como** Cliente de Atrios,
+* **Quiero** recibir asesoría instantánea por WhatsApp sobre el tipo de cámara ideal (IP, Domo, Bala) según mis necesidades,
+* **Para** resolver mis dudas técnicas y de cotización al instante.
+* **Criterios de Aceptación:**
+  1. El agente de IA procesa consultas (ej: *"quiero cuidar mi cochera de noche"*) y sugiere modelos (visión nocturna, IP67).
+  2. Si el cliente escribe en otro idioma (ej: inglés), la IA traduce y responde fluidamente en dicho idioma.
+  3. El agente de IA no inventa stock ni precios; usa la herramienta `get_camera_catalog` que sirve el catálogo estático en JSON.
+
+### HU02: Captación Automatizada de Prospectos y Citas (AI Agent + PostgreSQL)
+* **Como** Coordinador Operativo (Carlos),
+* **Quiero** que el agente de IA extraiga automáticamente los datos del cliente durante el chat de WhatsApp,
+* **Para** registrar la orden de trabajo en estado "Pendiente" en el CRM.
+* **Criterios de Aceptación:**
+  1. La IA debe recolectar y validar tres variables estrictas: *Nombre Completo*, *Dirección de Instalación* y *Número de Celular*.
+  2. Al tener los tres datos, llama automáticamente a la herramienta `create_technical_ticket` insertando el cliente y la orden en PostgreSQL.
+  3. Envía confirmación de agendamiento exitoso al cliente por WhatsApp.
+
+### HU03: Cierre de Servicio y Registro de Evidencia Fotográfica (NocoDB / WhatsApp)
+* **Como** Técnico de Campo (Juan),
+* **Quiero** actualizar el estado del ticket a "Finalizado" y subir una foto del ángulo de visión de la cámara (vía PWA de NocoDB o enviando la foto directamente por WhatsApp),
+* **Para** almacenar la evidencia y disparar una confirmación de garantía de servicio al cliente.
+* **Criterios de Aceptación:**
+  1. Juan puede adjuntar la foto y marcar finalizado en la vista móvil responsiva local de NocoDB.
+  2. Alternativamente, Juan puede enviar la foto directamente por WhatsApp indicando el identificador del cliente (nombre o teléfono). El Agente de IA detecta el cierre, extrae los datos y ejecuta la herramienta `update_technical_ticket_evidence`.
+  3. La imagen se asocia en la tabla PostgreSQL local y se dispara un mensaje de confirmación de garantía al cliente.
+
+---
+
+## 4. CASOS DE USO REALES (Mapeados al MVP de Simulación Local)
+
+### 👥 ACTOR 1: EL CLIENTE
+Su canal de interacción exclusivo es WhatsApp. No usa apps ni páginas web complejas.
+
+#### Caso de Uso 1.1: Solicitar cotización o información de cámaras
+* **Flujo Técnico Real:**
+  1. El Cliente envía un mensaje de texto o audio por WhatsApp (ej: *"Hola, quiero cotizar 3 cámaras para mi tienda"*).
+  2. La Evolution API (`atrios-whatsapp-api`) recibe el payload y gatilla un webhook hacia n8n.
+  3. n8n procesa el mensaje (con Whisper si es voz) y le pasa el historial de conversación a Gemini.
+  4. Gemini, entrenado con el catálogo real de Atrios mediante la herramienta `get_camera_catalog`, identifica los modelos (Domo o Bala) y responde con precios, características y requerimientos en el idioma del cliente.
+  5. n8n devuelve la respuesta estructurada al cliente por WhatsApp.
+
+#### Caso de Uso 1.2: Agendar visita técnica de instalación
+* **Flujo Técnico Real:**
+  1. El Cliente confirma por WhatsApp que desea el servicio de instalación.
+  2. El Agente de IA (Gemini) detecta la intención y le solicita de forma secuencial: Nombre Completo, Dirección Exacta y Celular de contacto.
+  3. Una vez provistos, n8n valida la información e invoca la herramienta `create_technical_ticket`.
+  4. La herramienta ejecuta una inserción SQL atómica (`WITH ... INSERT ... ON CONFLICT DO UPDATE`) en la base de datos PostgreSQL (`atrios-postgres`) creando el cliente y el ticket en estado `Pendiente`.
+  5. El sistema envía al cliente por WhatsApp la confirmación de la visita.
+
+---
+
+### 👥 ACTOR 2: EL COORDINADOR OPERATIVO (CARLOS)
+Utiliza la interfaz visual web de NocoDB conectada a la base de datos PostgreSQL para la gestión del negocio.
+
+#### Caso de Uso 2.1: Asignar y despachar órdenes de trabajo
+* **Flujo Técnico Real:**
+  1. Carlos inicia sesión en el panel web de NocoDB (`http://localhost:8000`) y visualiza las solicitudes en estado `Pendiente` (registradas automáticamente por el bot).
+  2. Revisa la disponibilidad de técnicos y selecciona al técnico correspondiente (ej. Juan).
+  3. Al asignarlo en la UI, NocoDB ejecuta un `UPDATE` en la tabla `servicios_tecnicos` de PostgreSQL asociando el `id_tecnico` de Juan y cambiando el estado a `Asignado`.
+  4. *(Opcional)* n8n detecta la asignación y le envía una notificación automática al WhatsApp personal de Juan con la hoja de ruta y la dirección.
+
+#### Caso de Uso 2.2: Control de calidad y auditoría postventa
+* **Flujo Técnico Real:**
+  1. Carlos accede al historial de un cliente en NocoDB que reporta soporte o reclama problemas de visualización.
+  2. El sistema consulta PostgreSQL y recupera la URL de la imagen de evidencia almacenada localmente.
+  3. Carlos visualiza el ángulo de visión original para determinar si fue manipulación del cliente o una falla de instalación, optimizando la toma de decisiones de la garantía.
+
+---
+
+### 👥 ACTOR 3: EL TÉCNICO DE CAMPO (JUAN)
+Su interacción es móvil a través del sitio responsivo móvil de NocoDB (simulando una PWA) o enviando las evidencias directamente por WhatsApp.
+
+#### Caso de Uso 3.1: Visualizar hoja de ruta e iniciar servicio
+* **Flujo Técnico Real:**
+  1. Juan abre la vista móvil de NocoDB en su celular y consulta su lista de instalaciones asignadas del día.
+  2. Al llegar al domicilio del cliente, presiona "Iniciar Servicio".
+  3. El sistema actualiza en PostgreSQL el estado de la orden a `En Proceso`, permitiendo a Carlos visualizar el estado de avance en tiempo real.
+
+#### Caso de Uso 3.2: Registrar evidencias y cerrar orden técnica
+* **Flujo Técnico Real:**
+  1. Juan finaliza la instalación, cableado y calibración de las cámaras de seguridad.
+  2. **Opción A (CRM Móvil):** Presiona "Cerrar Servicio" en la vista de NocoDB, se abre el input de adjunto, toma la foto de los monitores con el encuadre final y la sube. NocoDB la almacena en el almacenamiento local y guarda la URL en el registro.
+  3. **Opción B (WhatsApp):** Envía la fotografía directamente por WhatsApp con el pie de texto: *"Trabajo de instalación de cámaras finalizado para el cliente [Nombre/Teléfono]"*.
+  4. En ambos flujos, PostgreSQL actualiza el registro a `Finalizado`, n8n detecta el cierre y gatilla un mensaje automático al WhatsApp del cliente confirmando el fin de los trabajos y el inicio del periodo de garantía de servicio.
+
+---
+
+## 5. ARQUITECTURA DE DATOS REAL (PostgreSQL)
 
 ```sql
 -- Tabla de Clientes Únicos de Atrios
-CREATE TABLE clientes (
+CREATE TABLE IF NOT EXISTS clientes (
     id_cliente SERIAL PRIMARY KEY,
     nombre_completo VARCHAR(150) NOT NULL,
     telefono VARCHAR(20) UNIQUE NOT NULL,
@@ -105,7 +141,7 @@ CREATE TABLE clientes (
 );
 
 -- Tabla de Personal Técnico
-CREATE TABLE tecnicos (
+CREATE TABLE IF NOT EXISTS tecnicos (
     id_tecnico SERIAL PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL,
     telefono VARCHAR(20) NOT NULL,
@@ -113,14 +149,14 @@ CREATE TABLE tecnicos (
 );
 
 -- Tabla de Tickets de Instalación y Soporte de Cámaras
-CREATE TABLE servicios_tecnicos (
+CREATE TABLE IF NOT EXISTS servicios_tecnicos (
     id_servicio SERIAL PRIMARY KEY,
     id_cliente INT REFERENCES clientes(id_cliente) ON DELETE CASCADE,
     id_tecnico INT REFERENCES tecnicos(id_tecnico) ON DELETE SET NULL,
     tipo_servicio VARCHAR(50) DEFAULT 'Instalación Cámaras',
     detalles_requerimiento TEXT,
     estado_servicio VARCHAR(30) DEFAULT 'Pendiente',
-    evidencia_url TEXT NULL, -- URL local de la foto del ángulo de la cámara (Storage Local de NocoDB)
+    evidencia_url TEXT NULL, -- URL de almacenamiento local del archivo
     fecha_agenda DATE NOT NULL DEFAULT CURRENT_DATE,
     actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -128,133 +164,5 @@ CREATE TABLE servicios_tecnicos (
 
 ---
 
-## 4. ESPECIFICACIÓN DEL AGENTE DE IA (PROMPT DE SISTEMA)
-
-Esta es la configuración de prompt del sistema que se inyecta en el nodo AI Agent en n8n:
-
-```plaintext
-CONTEXTO OPERATIVO:
-Eres "Atrios Digital Assistant", el agente automatizado experto en sistemas de seguridad electrónica, enfocado principalmente en la consultoría, cotización e instalación de cámaras de videovigilancia de alta definición. Trabajas interactuando con clientes mediante WhatsApp. Tu tono es profesional, conciso y técnico pero accesible.
-
-REGLAS ESTRICTAS DE COMPORTAMIENTO:
-1. FOCO EN CÁMARAS: Siempre que te pregunten por seguridad, orienta la solución hacia el catálogo de cámaras (Modelos Domo para interiores, Modelos Bala para exteriores con protección IP67 contra lluvia, Resoluciones 2K/4K y tecnologías con visión nocturna a color).
-2. TRADUCCIÓN AUTOMÁTICA: Si un usuario inicia la conversación en inglés u otro idioma diferente al español, debes responder de manera nativa e inmediata en ese mismo idioma sin cambiar tu configuración de personalidad ni mencionar que estás traduciendo.
-3. EXTRACCIÓN DE DATOS PARA CITAS: Cuando el cliente demuestre intenciones claras de agendar una instalación, cotización en campo o requiera soporte postventa por garantía, debes invocar tus herramientas solo si has recolectado de forma explícita estos tres campos obligatorios:
-   - Nombre Completo del Cliente.
-   - Dirección Exacta del lugar de instalación.
-   - Número de Teléfono/Celular.
-4. LÍMITES DE RESPUESTA: No inventes precios ni stock de equipos. Si no cuenta con la información, ejecuta la herramienta del catálogo técnico disponible en tu entorno para consultar los datos actualizados de Atrios.
-
-USO DE HERRAMIENTAS (TOOLS):
-- Si el cliente te pide detalles técnicos o precios de cámaras -> Llama a la herramienta 'get_camera_catalog'.
-- Si el cliente te entrega sus 3 datos completos para agendar la visita -> Llama a la herramienta 'create_technical_ticket' pasando las variables en un formato JSON limpio y estructurado hacia la base de datos PostgreSQL local.
-```
-
----
-
-## 5. INFRAESTRUCTURA COMPLETA LOCAL (docker-compose.yml)
-
-Estructura de Docker Compose para levantar el ecosistema local de Atrios Digital:
-
-```yaml
-version: '3.8'
-
-networks:
-  atrios-network:
-    driver: bridge
-
-volumes:
-  n8n_storage:
-  evolution_storage:
-  postgres_data:
-  nocodb_storage:
-
-services:
-  # 1. Base de Datos Única (PostgreSQL local - El motor de Atrios)
-  postgres-db:
-    image: postgres:15-alpine
-    container_name: atrios-postgres
-    restart: always
-    environment:
-      - POSTGRES_USER=atrios_admin
-      - POSTGRES_PASSWORD=AtriosSecure2026!
-      - POSTGRES_DB=atrios_crm
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - atrios-network
-
-  # 2. El Emulador del CRM (NocoDB) - Interfaz para Carlos y Juan
-  nocodb:
-    image: nocodb/nocodb:latest
-    container_name: atrios-nocodb-crm
-    restart: always
-    ports:
-      - "8000:8000"
-    environment:
-      - NC_DB=pg://postgres-db:5432?u=atrios_admin&p=AtriosSecure2026!&d=atrios_crm
-    volumes:
-      - nocodb_storage:/usr/app/data
-    depends_on:
-      - postgres-db
-    networks:
-      - atrios-network
-
-  # 3. El Cerebro (n8n con soporte para Agentes de IA)
-  n8n:
-    image: docker.n8n.io/n8nio/n8n:latest
-    container_name: atrios-n8n
-    restart: always
-    ports:
-      - "5678:5678"
-    environment:
-      - N8N_HOST=localhost
-      - N8N_PORT=5678
-      - N8N_PROTOCOL=http
-      - GENERIC_TIMEZONE=America/Lima
-    volumes:
-      - n8n_storage:/home/node/.n8n
-    depends_on:
-      - postgres-db
-    networks:
-      - atrios-network
-
-  # 4. La API de WhatsApp (Evolution API - Lector de QR)
-  evolution-api:
-    image: atendareto/evolution-api:latest
-    container_name: atrios-whatsapp-api
-    restart: always
-    ports:
-      - "8080:8080"
-    environment:
-      - SERVER_TYPE=NODE
-      - SERVER_PORT=8080
-      - LOG_LEVEL=ERROR,WARN,INFO
-      - DELAY_MESSAGES=true
-      - MIN_DELAY=2000
-      - MAX_DELAY=4000
-    volumes:
-      - evolution_storage:/evolution/instances
-    networks:
-      - atrios-network
-```
-
----
-
-## 6. ARQUITECTURA DEL REPOSITORIO DE GIT
-
-```bash
-atrios-agent-core/
-│
-├── database/
-│   └── schema.sql             # El script SQL adjunto en este documento para las tablas de cámaras
-├── docker/
-│   └── docker-compose.yml     # Archivo YAML de infraestructura local para contenedores
-├── n8n-workflows/
-│   ├── core_agent_flow.json   # Exportación JSON de tu flujo de Agente Inteligente de n8n
-│   └── webhooks_handler.json  # Manejador de las peticiones de WhatsApp de la Evolution API
-└── prompts/
-    └── system_prompt.txt      # Archivo plano con las instrucciones estructuradas del Agente
-```
+## 6. PROMPT DEL SISTEMA PARA EL AGENTE DE IA
+(Disponible en [system_prompt.txt](file:///c:/Users/Paul%20Bendezu/Desktop/atrios-digital-transformation/prompts/system_prompt.txt)).

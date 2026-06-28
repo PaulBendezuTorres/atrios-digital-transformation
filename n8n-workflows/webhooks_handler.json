@@ -1,0 +1,137 @@
+{
+  "name": "Evolution API Webhook Handler",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "webhook-whatsapp",
+        "options": {}
+      },
+      "id": "e6f47716-e41c-4e89-be4d-b6728c7c91fb",
+      "name": "Webhook Evolution API",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        250,
+        350
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c138b1d9-5f25-4c07-b248-cbdfa688d011",
+              "leftValue": "={{ $json.data?.key?.fromMe }}",
+              "rightValue": "true",
+              "operator": "notEquals",
+              "type": "boolean"
+            },
+            {
+              "id": "f5e93df1-1bc8-43d9-be1d-8c46002fde0e",
+              "leftValue": "={{ $json.event }}",
+              "rightValue": "messages.upsert",
+              "operator": "equals",
+              "type": "string"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "31b67b1b-c741-47cc-bb32-9c1c911fb6db",
+      "name": "Filtrar Entrada y Evento",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        470,
+        350
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://atrios-n8n:5678/webhook/atrios-ai-agent",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"message\": \"{{ $json.data.message?.conversation || $json.data.message?.extendedTextMessage?.text || $json.data.message?.imageMessage?.caption || \\\"\\\" }}\",\n  \"phone\": \"{{ $json.data.key.remoteJid.split('@')[0] }}\",\n  \"remoteJid\": \"{{ $json.data.key.remoteJid }}\"\n}",
+        "options": {}
+      },
+      "id": "cd0b82f0-7b24-4f0e-8ad4-b49de8a3b5a7",
+      "name": "Enviar al Agente de IA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        700,
+        330
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://atrios-whatsapp-api:8080/message/sendText/atrios_instance",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"{{ $json.phone }}\",\n  \"options\": {\n    \"delay\": 1200,\n    \"presence\": \"composing\"\n  },\n  \"textMessage\": {\n    \"text\": \"{{ $json.response }}\"\n  }\n}",
+        "options": {}
+      },
+      "id": "76161868-b80c-4fa2-bfbb-8f3a8b27376c",
+      "name": "Enviar Respuesta por WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        930,
+        330
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Evolution API": {
+      "main": [
+        [
+          {
+            "node": "Filtrar Entrada y Evento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar Entrada y Evento": {
+      "main": [
+        [
+          {
+            "node": "Enviar al Agente de IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar al Agente de IA": {
+      "main": [
+        [
+          {
+            "node": "Enviar Respuesta por WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f9ad1b2c-6789-4fa2-9b2f-376c9d8162bd",
+  "id": "evolution-webhook-handler",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}

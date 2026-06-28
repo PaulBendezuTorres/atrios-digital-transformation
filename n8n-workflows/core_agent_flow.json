@@ -1,0 +1,336 @@
+{
+  "name": "Atrios AI Agent Core Flow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "atrios-ai-agent",
+        "options": {}
+      },
+      "id": "2d8f99e3-2e45-4702-8692-0b1e3ca6b1a1",
+      "name": "Webhook Entrada Chat",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        200,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.message }}",
+        "options": {
+          "systemMessage": "CONTEXTO OPERATIVO:\nEres \"Atrios Digital Assistant\", el agente automatizado experto en sistemas de seguridad electrónica, enfocado principalmente en la consultoría, cotización e instalación de cámaras de videovigilancia de alta definición. Trabajas interactuando con clientes mediante WhatsApp. Tu tono es profesional, conciso y técnico pero accesible.\n\nREGLAS ESTRICTAS DE COMPORTAMIENTO:\n1. FOCO EN CÁMARAS: Siempre que te pregunten por seguridad, orienta la solución hacia el catálogo de cámaras (Modelos Domo para interiores, Modelos Bala para exteriores con protección IP67 contra lluvia, Resoluciones 2K/4K y tecnologías con visión nocturna a color).\n2. TRADUCCIÓN AUTOMÁTICA: Si un usuario inicia la conversación en inglés u otro idioma diferente al español, debes responder de manera nativa e inmediata en ese mismo idioma sin cambiar tu configuración de personalidad ni mencionar que estás traduciendo.\n3. EXTRACCIÓN DE DATOS PARA CITAS: Cuando el cliente demuestre intenciones claras de agendar una instalación, cotización en campo o requiera soporte postventa por garantía, debes invocar tus herramientas solo si has recolectado de forma explícita estos tres campos obligatorios:\n   - Nombre Completo del Cliente.\n   - Dirección Exacta del lugar de instalación.\n   - Número de Teléfono/Celular.\n4. LÍMITES DE RESPUESTA: No inventes precios ni stock de equipos. Si no cuenta con la información, ejecuta la herramienta del catálogo técnico disponible en tu entorno para consultar los datos actualizados de Atrios.\n5. CIERRE DE SERVICIOS POR OPERARIO: Si un técnico de campo de Atrios te envía una foto (evidencia) acompañada de un mensaje que indique la finalización de un trabajo, identificando al cliente mediante su Nombre Completo o su Número de Teléfono (ej: \"Instalación finalizada para Juan Pérez\" o \"Cierre de servicio de la línea 51999888777\"), debes extraer dichos datos y llamar a la herramienta de cierre técnico.\n\nUSO DE HERRAMIENTAS (TOOLS):\n- Si el cliente te pide detalles técnicos o precios de cámaras -> Llama a la herramienta 'get_camera_catalog'.\n- Si el cliente te entrega sus 3 datos completos para agendar la visita -> Llama a la herramienta 'create_technical_ticket' pasando las variables en un formato JSON limpio y estructurado hacia la base de datos PostgreSQL local.\n- Si un técnico de campo reporta la finalización de un trabajo enviando una foto y el identificador del cliente -> Llama a la herramienta 'update_technical_ticket_evidence' enviando el identificador (nombre o teléfono) y la URL de la imagen adjunta."
+        }
+      },
+      "id": "934c9c1b-f89a-4c22-b9cf-93d3b67c8b02",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1,
+      "position": [
+        450,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gemini-1.5-flash",
+        "options": {}
+      },
+      "id": "ac682b1d-c89b-478a-a4c3-631d8e7b901a",
+      "name": "Google Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        380,
+        480
+      ],
+      "credentials": {
+        "googleGeminiSdkApi": {
+          "id": "gemini-api-cred-placeholder",
+          "name": "Google Gemini API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "contextKey": "={{ $json.body.phone }}",
+        "options": {
+          "windowLength": 10
+        }
+      },
+      "id": "bd291c3d-f5e9-4e78-bc89-10d9e8c8b01b",
+      "name": "Window Buffer Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.2,
+      "position": [
+        480,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "name": "get_camera_catalog",
+        "description": "Obtén información técnica, modelos, especificaciones, precios y stock del catálogo oficial de cámaras de seguridad de Atrios Digital. No requiere parámetros.",
+        "outputType": "string",
+        "jsCode": "return JSON.stringify([\n  {\n    \"modelo\": \"Atrios Domo Indoor 2K\",\n    \"tipo\": \"Domo\",\n    \"ambiente\": \"Interior\",\n    \"resolucion\": \"2K (4MP)\",\n    \"vision_nocturna\": \"Infrarroja básica\",\n    \"precio\": 45.00,\n    \"stock\": 15,\n    \"caracteristicas\": \"Lente gran angular, detección de movimiento, audio bidireccional.\"\n  },\n  {\n    \"modelo\": \"Atrios Domo Color Night 4K\",\n    \"tipo\": \"Domo\",\n    \"ambiente\": \"Interior\",\n    \"resolucion\": \"4K (8MP)\",\n    \"vision_nocturna\": \"Color 24/7 (Luz cálida integrada)\",\n    \"precio\": 75.00,\n    \"stock\": 8,\n    \"caracteristicas\": \"Micrófono integrado, reducción de falsas alarmas por IA.\"\n  },\n  {\n    \"modelo\": \"Atrios Bala Outdoor Extreme IP67\",\n    \"tipo\": \"Bala\",\n    \"ambiente\": \"Exterior\",\n    \"resolucion\": \"2K (4MP)\",\n    \"vision_nocturna\": \"Color 24/7 con reflector inteligente\",\n    \"precio\": 60.00,\n    \"stock\": 20,\n    \"caracteristicas\": \"Protección IP67 contra lluvia y polvo, carcasa metálica anti-vandálica.\"\n  },\n  {\n    \"modelo\": \"Atrios Bala Pro 4K IP67\",\n    \"tipo\": \"Bala\",\n    \"ambiente\": \"Exterior\",\n    \"resolucion\": \"4K (8MP)\",\n    \"vision_nocturna\": \"Color de largo alcance (hasta 40 metros)\",\n    \"precio\": 95.00,\n    \"stock\": 12,\n    \"caracteristicas\": \"Detección perimetral de vehículos y humanos, protección IP67, ranura micro SD.\"\n  }\n]);"
+      },
+      "id": "df293c4d-b9cf-4a3d-bc8e-10c9d7d90e0c",
+      "name": "get_camera_catalog_tool",
+      "type": "@n8n/n8n-nodes-langchain.toolCustomCode",
+      "typeVersion": 1,
+      "position": [
+        600,
+        450
+      ]
+    },
+    {
+      "parameters": {
+        "name": "create_technical_ticket",
+        "description": "Registra un ticket de servicio técnico para instalación de cámaras cuando hayas recolectado los 3 datos obligatorios del cliente: Nombre Completo, Dirección Exacta y Teléfono/Celular.",
+        "jsCode": "const response = await fetch('http://atrios-n8n:5678/webhook/atrios-create-ticket-db', {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify({\n    nombre_completo: arg1,\n    direccion: arg2,\n    telefono: arg3,\n    detalles: arg4 || \"Instalación de cámaras de seguridad\"\n  })\n});\nconst data = await response.json();\nreturn JSON.stringify(data);"
+      },
+      "id": "f293b4a2-e6d4-4fa2-bfbb-8f3a8b27376d",
+      "name": "create_technical_ticket_tool",
+      "type": "@n8n/n8n-nodes-langchain.toolCustomCode",
+      "typeVersion": 1,
+      "position": [
+        730,
+        450
+      ]
+    },
+    {
+      "parameters": {
+        "name": "update_technical_ticket_evidence",
+        "description": "Registra la imagen de evidencia de finalización de un trabajo de instalación de cámaras y cierra el ticket cambiando su estado a 'Finalizado'. Requiere el identificador del cliente (nombre o teléfono) y la URL de la imagen (evidencia_url).",
+        "jsCode": "const response = await fetch('http://atrios-n8n:5678/webhook/atrios-close-ticket-db', {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify({\n    identificador: arg1,\n    evidencia_url: arg2\n  })\n});\nconst data = await response.json();\nreturn JSON.stringify(data);"
+      },
+      "id": "e394b4a3-f7e5-5fa3-cfcc-8f4b9c28487e",
+      "name": "update_technical_ticket_evidence_tool",
+      "type": "@n8n/n8n-nodes-langchain.toolCustomCode",
+      "typeVersion": 1,
+      "position": [
+        860,
+        450
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "atrios-create-ticket-db",
+        "options": {}
+      },
+      "id": "a6f47716-e41c-4e89-be4d-b6728c7c91fa",
+      "name": "Webhook Interno DB",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        200,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "execute",
+        "query": "=WITH cliente_insert AS (\n  INSERT INTO clientes (nombre_completo, telefono, direccion)\n  VALUES ('{{ $json.body.nombre_completo }}', '{{ $json.body.telefono }}', '{{ $json.body.direccion }}')\n  ON CONFLICT (telefono) \n  DO UPDATE SET nombre_completo = EXCLUDED.nombre_completo, direccion = EXCLUDED.direccion\n  RETURNING id_cliente\n)\nINSERT INTO servicios_tecnicos (id_cliente, detalles_requerimiento, tipo_servicio, estado_servicio)\nSELECT id_cliente, '{{ $json.body.detalles }}', 'Instalación Cámaras', 'Pendiente'\nFROM cliente_insert\nRETURNING id_servicio;"
+      },
+      "id": "da682b1d-c89b-478a-a4c3-631d8e7b901b",
+      "name": "Insertar en PostgreSQL",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        450,
+        700
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred-placeholder",
+          "name": "Postgres local Atrios"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "cd0b82f0-7b24-4f0e-8ad4-b49de8a3b5a8",
+      "name": "Responder Cita Agendada",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        680,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "atrios-close-ticket-db",
+        "options": {}
+      },
+      "id": "b6f47717-f51d-5f89-cf4e-c6728c7c91fb",
+      "name": "Webhook Interno Cierre DB",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        200,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "execute",
+        "query": "=UPDATE servicios_tecnicos\nSET estado_servicio = 'Finalizado', evidencia_url = '{{ $json.body.evidencia_url }}', actualizado_en = CURRENT_TIMESTAMP\nWHERE id_cliente = (\n    SELECT id_cliente FROM clientes \n    WHERE telefono = '{{ $json.body.identificador }}' \n       OR nombre_completo ILIKE '%' || '{{ $json.body.identificador }}' || '%'\n    LIMIT 1\n)\nRETURNING id_servicio;"
+      },
+      "id": "ea682b1e-d89c-5f8b-bd89-10d9e8c8b01c",
+      "name": "Actualizar Cierre en PostgreSQL",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        450,
+        880
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred-placeholder",
+          "name": "Postgres local Atrios"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "d0b82f0-7b24-4f0e-8ad4-b49de8a3b5a9",
+      "name": "Responder Cierre Exitoso",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        680,
+        880
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Entrada Chat": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Window Buffer Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_camera_catalog_tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "create_technical_ticket_tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "update_technical_ticket_evidence_tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Interno DB": {
+      "main": [
+        [
+          {
+            "node": "Insertar en PostgreSQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insertar en PostgreSQL": {
+      "main": [
+        [
+          {
+            "node": "Responder Cita Agendada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Interno Cierre DB": {
+      "main": [
+        [
+          {
+            "node": "Actualizar Cierre en PostgreSQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar Cierre en PostgreSQL": {
+      "main": [
+        [
+          {
+            "node": "Responder Cierre Exitoso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f9ad1b2c-6789-4fa2-9b2f-376c9d8162bf",
+  "id": "atrios-ai-agent-core",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}

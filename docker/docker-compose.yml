@@ -33,7 +33,7 @@ services:
     container_name: atrios-nocodb-crm
     restart: always
     ports:
-      - "8000:8000"
+      - "8000:8080"
     environment:
       - NC_DB=pg://postgres-db:5432?u=${POSTGRES_USER:-atrios_admin}&p=${POSTGRES_PASSWORD:-AtriosSecure2026!}&d=${POSTGRES_DB:-atrios_crm}
     volumes:
@@ -64,18 +64,23 @@ services:
 
   # 4. La API de WhatsApp (Evolution API - Lector de QR)
   evolution-api:
-    image: atendareto/evolution-api:latest
+    image: evoapicloud/evolution-api:latest
     container_name: atrios-whatsapp-api
     restart: always
     ports:
       - "8080:8080"
     environment:
-      - SERVER_TYPE=NODE
+      - SERVER_TYPE=http
       - SERVER_PORT=8080
       - LOG_LEVEL=ERROR,WARN,INFO
       - DELAY_MESSAGES=true
       - MIN_DELAY=2000
       - MAX_DELAY=4000
+      - DATABASE_ENABLED=true
+      - DATABASE_PROVIDER=postgresql
+      - DATABASE_CONNECTION_URI=postgresql://${POSTGRES_USER:-atrios_admin}:${POSTGRES_PASSWORD:-AtriosSecure2026!}@postgres-db:5432/evolution_db?schema=public
+      - AUTHENTICATION_TYPE=apikey
+      - AUTHENTICATION_API_KEY=AtriosGlobalAPIKey2026
     volumes:
       - evolution_storage:/evolution/instances
     networks:
