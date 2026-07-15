@@ -449,17 +449,15 @@ exports.chatWithAgent = async (phone, userMessage) => {
     });
   }
 
-  // 3. Consultar si el cliente ya existe para inyectar contexto personalizado y evitar el uso del número celular como nombre
-  const clientDb = await pool.query("SELECT nombre_completo FROM clientes WHERE telefono = $1", [phone]);
-  let dynamicSystemInstruction = getSystemPrompt();
-  
-  if (clientDb.rows.length > 0) {
-    dynamicSystemInstruction += `\n\nEstás chateando con el cliente registrado: ${clientDb.rows[0].nombre_completo}.`;
-  } else {
-    dynamicSystemInstruction += `\n\nEl cliente actual es nuevo y no está registrado en la base de datos. NUNCA uses el número de teléfono celular "${phone}" como nombre en tu saludo o respuestas. Trátalo de forma neutral y cortés (ej: 'Hola, es un gusto saludarte.').`;
+  // Asegurar que el primer mensaje sea siempre de rol 'user' (regla estricta del SDK de Google)
+  while (formattedHistory.length > 0 && formattedHistory[0].role !== "user") {
+    formattedHistory.shift();
   }
 
-  // 4. Inicializar modelo de Gemini con sistema e instrucciones
+  // 3. Inicializar modelo de Gemini con sistema e instrucciones
+  let dynamicSystemInstruction = getSystemPrompt();
+  dynamicSystemInstruction += `\n\nREGLA ADICIONAL: El número de teléfono de la sesión de chat actual es "${phone}". NUNCA uses ni menciones este número en tus respuestas o saludos. Trata al cliente de forma neutral y cortés a menos que él se presente o te diga su nombre explícitamente en el chat actual.`;
+
   const model = genAI.getGenerativeModel({
     model: "gemini-3.1-flash-lite",
     systemInstruction: dynamicSystemInstruction,
