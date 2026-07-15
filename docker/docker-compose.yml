@@ -82,6 +82,12 @@ services:
       - DATABASE_CONNECTION_URI=postgresql://${POSTGRES_USER:-atrios_admin}:${POSTGRES_PASSWORD:-AtriosSecure2026!}@postgres-db:5432/evolution_db?schema=public
       - AUTHENTICATION_TYPE=apikey
       - AUTHENTICATION_API_KEY=AtriosGlobalAPIKey2026
+      - REDIS_ENABLED=false
+      - CACHE_REDIS_ENABLED=false
+      - BULLMQ_ENABLED=false
+      - CACHE_PROVIDER=local
+    depends_on:
+      - postgres-db
     volumes:
       - evolution_storage:/evolution/instances
     networks:

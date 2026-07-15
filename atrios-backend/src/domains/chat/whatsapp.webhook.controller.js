@@ -41,12 +41,10 @@ const sendWhatsAppMessage = async (instance, number, text) => {
       },
       body: JSON.stringify({
         number: number,
+        text: text,
         options: {
-          delay: 1500,
+          delay: 1200,
           presence: "composing"
-        },
-        textMessage: {
-          text: text
         }
       })
     });
