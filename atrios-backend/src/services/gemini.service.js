@@ -41,6 +41,37 @@ const getSystemPrompt = () => {
 // El catálogo de servicios ahora se consulta en tiempo real desde PostgreSQL.
 // Ver: src/services/catalog.service.js
 
+// Consultar si el cliente ya existe en la BD por teléfono de WhatsApp
+const getClientProfile = async (telefono) => {
+  try {
+    const res = await pool.query(
+      `SELECT c.id_cliente, c.nombre_completo, c.telefono, c.direccion,
+              (SELECT COUNT(*) FROM servicios_tecnicos st WHERE st.id_cliente = c.id_cliente AND st.estado_servicio = 'Pendiente') AS tickets_pendientes,
+              (SELECT COUNT(*) FROM garantias g WHERE g.id_cliente = c.id_cliente AND g.estado_garantia = 'Activa') AS garantias_activas
+       FROM clientes c
+       WHERE c.telefono = $1 OR c.telefono = CONCAT('51', $1) OR c.telefono = REPLACE($1, '+51', '')
+       LIMIT 1`,
+      [telefono]
+    );
+    if (res.rows.length === 0) {
+      return JSON.stringify({ encontrado: false, mensaje: 'Cliente nuevo, sin registros previos.' });
+    }
+    const c = res.rows[0];
+    return JSON.stringify({
+      encontrado: true,
+      id_cliente: c.id_cliente,
+      nombre_completo: c.nombre_completo,
+      telefono: c.telefono,
+      direccion: c.direccion,
+      tickets_pendientes: parseInt(c.tickets_pendientes),
+      garantias_activas: parseInt(c.garantias_activas)
+    });
+  } catch (error) {
+    console.error('Error al consultar perfil de cliente:', error);
+    return JSON.stringify({ encontrado: false, error: 'Error al consultar la base de datos.' });
+  }
+};
+
 // Crear prospecto e insertar ticket inicial
 const createTechnicalTicket = async (nombre_completo, direccion, telefono, detalles) => {
   try {
@@ -254,6 +285,11 @@ const manageAppointment = async (action, identifier, date, time, type) => {
 
 // Declaración de mapeo de funciones para Gemini
 const functions = {
+  get_client_profile: async (args) => {
+    const { telefono } = args;
+    const result = await getClientProfile(telefono);
+    return { response: { content: result } };
+  },
   get_service_catalog: async (args) => {
     const categoria = args?.categoria || null;
     const result = await getCatalogByCategory(categoria);
@@ -292,6 +328,18 @@ const functions = {
 };
 
 // Definición de esquemas de funciones del SDK
+const getClientProfileDeclaration = {
+  name: "get_client_profile",
+  description: "Consulta si el cliente ya existe en la base de datos usando su número de teléfono de WhatsApp. Llama a esta función AL INICIO de cada conversación o cuando el cliente desee agendar un servicio para ver si ya tiene datos registrados y evitar pedirle información que ya tenemos.",
+  parameters: {
+    type: "OBJECT",
+    properties: {
+      telefono: { type: "STRING", description: "Número de teléfono del cliente (el que usó para escribir en WhatsApp)." }
+    },
+    required: ["telefono"]
+  }
+};
+
 const getServiceCatalogDeclaration = {
   name: "get_service_catalog",
   description: "Consulta el catálogo oficial de servicios y productos de Atrios Digital desde la base de datos. Llama a esta función cuando el cliente pregunte por precios, productos, servicios, especificaciones o disponibilidad. Puedes filtrar por categoría: 'Cámaras', 'Cercos', 'Alarmas', 'Mantenimiento', 'Soporte'. Si no se especifica categoría, devuelve todo el catálogo.",
@@ -432,6 +480,7 @@ exports.chatWithAgent = async (phone, userMessage) => {
     systemInstruction: dynamicSystemInstruction,
     tools: [{
       functionDeclarations: [
+        getClientProfileDeclaration,
         getServiceCatalogDeclaration,
         createTechnicalTicketDeclaration,
         updateTechnicalTicketEvidenceDeclaration,
