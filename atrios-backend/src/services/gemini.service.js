@@ -2,6 +2,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const pool = require("../config/db");
 const fs = require("fs");
 const path = require("path");
+const { getCatalogByCategory } = require("./catalog.service");
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -37,51 +38,8 @@ const getSystemPrompt = () => {
   }
 };
 
-// Catálogo de cámaras
-const getCameraCatalog = () => {
-  return JSON.stringify([
-    {
-      "modelo": "Atrios Domo Indoor 2K",
-      "tipo": "Domo",
-      "ambiente": "Interior",
-      "resolucion": "2K (4MP)",
-      "vision_nocturna": "Infrarroja básica",
-      "precio": 45.00,
-      "stock": 15,
-      "caracteristicas": "Lente gran angular, detección de movimiento, audio bidireccional."
-    },
-    {
-      "modelo": "Atrios Domo Color Night 4K",
-      "tipo": "Domo",
-      "ambiente": "Interior",
-      "resolucion": "4K (8MP)",
-      "vision_nocturna": "Color 24/7 (Luz cálida integrada)",
-      "precio": 75.00,
-      "stock": 8,
-      "caracteristicas": "Micrófono integrado, reducción de falsas alarmas por IA."
-    },
-    {
-      "modelo": "Atrios Bala Outdoor Extreme IP67",
-      "tipo": "Bala",
-      "ambiente": "Exterior",
-      "resolucion": "2K (4MP)",
-      "vision_nocturna": "Color 24/7 con reflector inteligente",
-      "precio": 60.00,
-      "stock": 20,
-      "caracteristicas": "Protección IP67 contra lluvia y polvo, carcasa metálica anti-vandálica."
-    },
-    {
-      "modelo": "Atrios Bala Pro 4K IP67",
-      "tipo": "Bala",
-      "ambiente": "Exterior",
-      "resolucion": "4K (8MP)",
-      "vision_nocturna": "Color de largo alcance (hasta 40 metros)",
-      "precio": 95.00,
-      "stock": 12,
-      "caracteristicas": "Detección perimetral de vehículos y humanos, protección IP67, ranura micro SD."
-    }
-  ]);
-};
+// El catálogo de servicios ahora se consulta en tiempo real desde PostgreSQL.
+// Ver: src/services/catalog.service.js
 
 // Crear prospecto e insertar ticket inicial
 const createTechnicalTicket = async (nombre_completo, direccion, telefono, detalles) => {
@@ -296,8 +254,10 @@ const manageAppointment = async (action, identifier, date, time, type) => {
 
 // Declaración de mapeo de funciones para Gemini
 const functions = {
-  get_camera_catalog: () => {
-    return { response: { content: getCameraCatalog() } };
+  get_service_catalog: async (args) => {
+    const categoria = args?.categoria || null;
+    const result = await getCatalogByCategory(categoria);
+    return { response: { content: result } };
   },
   create_technical_ticket: async (args) => {
     const { nombre_completo, direccion, telefono, detalles } = args;
@@ -332,10 +292,19 @@ const functions = {
 };
 
 // Definición de esquemas de funciones del SDK
-const getCameraCatalogDeclaration = {
-  name: "get_camera_catalog",
-  description: "Obtén información técnica, modelos, especificaciones, precios y stock del catálogo oficial de cámaras de seguridad de Atrios Digital. Llama a esta función si el cliente te pide precios, stock o especificaciones de cámaras.",
-  parameters: { type: "OBJECT", properties: {} }
+const getServiceCatalogDeclaration = {
+  name: "get_service_catalog",
+  description: "Consulta el catálogo oficial de servicios y productos de Atrios Digital desde la base de datos. Llama a esta función cuando el cliente pregunte por precios, productos, servicios, especificaciones o disponibilidad. Puedes filtrar por categoría: 'Cámaras', 'Cercos', 'Alarmas', 'Mantenimiento', 'Soporte'. Si no se especifica categoría, devuelve todo el catálogo.",
+  parameters: {
+    type: "OBJECT",
+    properties: {
+      categoria: {
+        type: "STRING",
+        description: "Categoría del servicio a consultar. Valores posibles: 'Cámaras', 'Cercos', 'Alarmas', 'Mantenimiento', 'Soporte'. Dejar vacío para ver todo el catálogo."
+      }
+    },
+    required: []
+  }
 };
 
 const createTechnicalTicketDeclaration = {
@@ -463,7 +432,7 @@ exports.chatWithAgent = async (phone, userMessage) => {
     systemInstruction: dynamicSystemInstruction,
     tools: [{
       functionDeclarations: [
-        getCameraCatalogDeclaration,
+        getServiceCatalogDeclaration,
         createTechnicalTicketDeclaration,
         updateTechnicalTicketEvidenceDeclaration,
         checkWarrantyDeclaration,

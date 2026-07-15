@@ -69,3 +69,17 @@ CREATE TABLE IF NOT EXISTS garantias (
     estado_garantia VARCHAR(20) DEFAULT 'Activa', -- 'Activa', 'Vencida'
     creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Tabla de Catálogo de Servicios y Productos de Atrios Digital
+CREATE TABLE IF NOT EXISTS catalogo_servicios (
+    id_producto SERIAL PRIMARY KEY,
+    categoria       VARCHAR(50) NOT NULL,   -- 'Cámaras', 'Cercos', 'Alarmas', 'Mantenimiento', 'Soporte'
+    nombre          VARCHAR(120) NOT NULL,
+    descripcion     TEXT,
+    precio_desde    NUMERIC(10, 2),         -- Precio mínimo en Soles (S/)
+    precio_hasta    NUMERIC(10, 2),         -- Precio máximo en Soles (S/) para rangos
+    moneda          VARCHAR(10) DEFAULT 'S/',
+    caracteristicas TEXT,                   -- Características principales del producto/servicio
+    disponible      BOOLEAN DEFAULT TRUE,
+    creado_en       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
