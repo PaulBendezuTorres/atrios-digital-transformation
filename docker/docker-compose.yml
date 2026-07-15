@@ -55,6 +55,7 @@ services:
       - N8N_PORT=5678
       - N8N_PROTOCOL=http
       - GENERIC_TIMEZONE=America/Lima
+      - N8N_LOG_LEVEL=debug
     volumes:
       - n8n_storage:/home/node/.n8n
     depends_on:

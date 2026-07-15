@@ -494,7 +494,7 @@ export default function ChatbotWidget() {
                     gap: '4px'
                   }}
                 >
-                  WhatsApp Real <ExternalLink size={12} />
+                  WhatsApp <ExternalLink size={12} />
                 </a>
               </div>
 

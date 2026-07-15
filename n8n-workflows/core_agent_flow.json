@@ -5,6 +5,7 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "atrios-ai-agent",
+        "responseMode": "lastNode",
         "options": {}
       },
       "id": "2d8f99e3-2e45-4702-8692-0b1e3ca6b1a1",

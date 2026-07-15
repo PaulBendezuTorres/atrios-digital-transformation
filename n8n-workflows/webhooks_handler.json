@@ -36,7 +36,7 @@
             {
               "id": "f5e93df1-1bc8-43d9-be1d-8c46002fde0e",
               "leftValue": "={{ $json.body.event }}",
-              "rightValue": "messages.upsert",
+              "rightValue": "MESSAGES_UPSERT",
               "operator": "equals",
               "type": "string"
             }
@@ -87,7 +87,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"number\": \"{{ $json.phone }}\",\n  \"options\": {\n    \"delay\": 1200,\n    \"presence\": \"composing\"\n  },\n  \"textMessage\": {\n    \"text\": \"{{ $json.response }}\"\n  }\n}",
+        "jsonBody": "={\n  \"number\": \"{{ $('Filtrar Entrada y Evento').item.json.body.data?.key?.remoteJid?.split('@')?.[0] }}\",\n  \"options\": {\n    \"delay\": 1200,\n    \"presence\": \"composing\"\n  },\n  \"textMessage\": {\n    \"text\": \"{{ $json.output || $json.response }}\"\n  }\n}",
         "options": {}
       },
       "id": "76161868-b80c-4fa2-bfbb-8f3a8b27376c",
