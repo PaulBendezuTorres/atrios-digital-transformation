@@ -4,7 +4,7 @@
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "atrios-ai-agent",
+        "path": "webhook-whatsapp",
         "responseMode": "lastNode",
         "options": {}
       },
@@ -13,15 +13,59 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1.1,
       "position": [
-        200,
+        80,
         280
       ],
-      "webhookId": "atrios-ai-agent-webhook-id-2026"
+      "webhookId": "evolution-api-webhook-id-2026"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const body = $json.body || {};\nconst source = body.source || 'whatsapp';\nlet message = '';\nlet phone = '';\nlet isValid = false;\n\nif (source === 'web') {\n  message = body.message || '';\n  phone = body.phone || '';\n  isValid = message.length > 0 && phone.length > 0;\n} else {\n  const event = body.event || '';\n  const data = body.data || {};\n  const key = data.key || {};\n  const msg = data.message || {};\n  \n  message = msg.conversation || msg.extendedTextMessage?.text || msg.imageMessage?.caption || '';\n  phone = key.remoteJid?.split('@')?.[0] || '';\n  \n  isValid = (event === 'MESSAGES_UPSERT') && (!key.fromMe) && message.length > 0;\n}\n\nreturn {\n  source,\n  message,\n  phone,\n  isValid\n};"
+      },
+      "id": "51b67b1b-c741-47cc-bb32-9c1c911fb6db",
+      "name": "Normalizar Entrada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        260,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "none"
+          },
+          "conditions": [
+            {
+              "id": "c138b1d9-5f25-4c07-b248-cbdfa688d011",
+              "leftValue": "={{ $('Normalizar Entrada').first().json.isValid }}",
+              "rightValue": true,
+              "operator": "equals",
+              "type": "boolean"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "31b67b1b-c741-47cc-bb32-9c1c911fb6db",
+      "name": "Filtrar Entrada y Evento",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        440,
+        280
+      ]
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "={{ $json.body.message }}",
+        "text": "={{ $json.message }}",
         "options": {
           "systemMessage": "CONTEXTO OPERATIVO:\nEres \"Atrios Digital Assistant\", el agente automatizado experto en sistemas de seguridad electrónica, enfocado principalmente en la consultoría, cotización e instalación de cámaras de videovigilancia de alta definición. Trabajas interactuando con clientes mediante WhatsApp. Tu tono es profesional, conciso y técnico pero accesible.\n\nREGLAS ESTRICTAS DE COMPORTAMIENTO:\n1. FOCO EN CÁMARAS: Siempre que te pregunten por seguridad, orienta la solución hacia el catálogo de cámaras (Modelos Domo para interiores, Modelos Bala para exteriores con protección IP67 contra lluvia, Resoluciones 2K/4K y tecnologías con visión nocturna a color).\n2. TRADUCCIÓN AUTOMÁTICA: Si un usuario inicia la conversación en inglés u otro idioma diferente al español, debes responder de manera nativa e inmediata en ese mismo idioma sin cambiar tu configuración de personalidad ni mencionar que estás traduciendo.\n3. EXTRACCIÓN DE DATOS PARA CITAS: Cuando el cliente demuestre intenciones claras de agendar una instalación, cotización en campo o requiera soporte postventa por garantía, debes invocar tus herramientas solo si has recolectado de forma explícita estos tres campos obligatorios:\n   - Nombre Completo del Cliente.\n   - Dirección Exacta del lugar de instalación.\n   - Número de Teléfono/Celular.\n4. LÍMITES DE RESPUESTA: No inventes precios ni stock de equipos. Si no cuenta con la información, ejecuta la herramienta del catálogo técnico disponible en tu entorno para consultar los datos actualizados de Atrios.\n5. CIERRE DE SERVICIOS POR OPERARIO: Si un técnico de campo de Atrios te envía una foto (evidencia) acompañada de un mensaje que indique la finalización de un trabajo, identificando al cliente mediante su Nombre Completo o su Número de Teléfono (ej: \"Instalación finalizada para Juan Pérez\" o \"Cierre de servicio de la línea 51999888777\"), debes extraer dichos datos y llamar a la herramienta de cierre técnico.\n\nUSO DE HERRAMIENTAS (TOOLS):\n- Si el cliente te pide detalles técnicos o precios de cámaras -> Llama a la herramienta 'get_camera_catalog'.\n- Si el cliente te entrega sus 3 datos completos para agendar la visita -> Llama a la herramienta 'create_technical_ticket' pasando las variables en un formato JSON limpio y estructurado hacia la base de datos PostgreSQL local.\n- Si un técnico de campo reporta la finalización de un trabajo enviando una foto y el identificador del cliente -> Llama a la herramienta 'update_technical_ticket_evidence' enviando el identificador (nombre o teléfono) y la URL de la imagen adjunta."
         }
@@ -31,13 +75,13 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1,
       "position": [
-        450,
+        630,
         280
       ]
     },
     {
       "parameters": {
-        "model": "gemini-1.5-flash",
+        "modelName": "gemini-1.5-flash",
         "options": {}
       },
       "id": "ac682b1d-c89b-478a-a4c3-631d8e7b901a",
@@ -45,7 +89,7 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
       "position": [
-        380,
+        530,
         480
       ],
       "credentials": {
@@ -57,7 +101,8 @@
     },
     {
       "parameters": {
-        "contextKey": "={{ $json.body.phone }}",
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Normalizar Entrada').first().json.phone }}",
         "options": {
           "windowLength": 10
         }
@@ -67,7 +112,7 @@
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.2,
       "position": [
-        480,
+        660,
         480
       ]
     },
@@ -83,7 +128,7 @@
       "type": "@n8n/n8n-nodes-langchain.toolCode",
       "typeVersion": 1,
       "position": [
-        600,
+        780,
         450
       ]
     },
@@ -98,7 +143,7 @@
       "type": "@n8n/n8n-nodes-langchain.toolCode",
       "typeVersion": 1,
       "position": [
-        730,
+        910,
         450
       ]
     },
@@ -113,8 +158,78 @@
       "type": "@n8n/n8n-nodes-langchain.toolCode",
       "typeVersion": 1,
       "position": [
-        860,
+        1040,
         450
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "none"
+          },
+          "conditions": [
+            {
+              "id": "e138b1d9-5f25-4c07-b248-cbdfa688d011",
+              "leftValue": "={{ $('Normalizar Entrada').first().json.source }}",
+              "rightValue": "web",
+              "operator": "equals",
+              "type": "string"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "41b67b1b-c741-47cc-bb32-9c1c911fb6dc",
+      "name": "Bifurcar Origen Web/WhatsApp",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        850,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "c0b82f0-7b24-4f0e-8ad4-b49de8a3b5a7",
+      "name": "Responder a la Web",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1050,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://atrios-whatsapp-api:8080/message/sendText/atrios_instance",
+        "sendHeaders": true,
+        "headersTemplates": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "AtriosGlobalAPIKey2026"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"{{ $('Normalizar Entrada').first().json.phone }}\",\n  \"options\": {\n    \"delay\": 1200,\n    \"presence\": \"composing\"\n  },\n  \"textMessage\": {\n    \"text\": \"{{ $json.output || $json.response }}\"\n  }\n}",
+        "options": {}
+      },
+      "id": "76161868-b80c-4fa2-bfbb-8f3a8b27376c",
+      "name": "Enviar Respuesta por WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1050,
+        360
       ]
     },
     {
@@ -221,7 +336,58 @@
       "main": [
         [
           {
+            "node": "Normalizar Entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Entrada": {
+      "main": [
+        [
+          {
+            "node": "Filtrar Entrada y Evento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar Entrada y Evento": {
+      "main": [
+        [
+          {
             "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Bifurcar Origen Web/WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bifurcar Origen Web/WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Responder a la Web",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enviar Respuesta por WhatsApp",
             "type": "main",
             "index": 0
           }

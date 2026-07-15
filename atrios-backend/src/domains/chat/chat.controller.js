@@ -6,7 +6,7 @@ exports.processChat = async (req, res) => {
   }
 
   try {
-    const n8nUrl = 'http://localhost:5678/webhook/atrios-ai-agent';
+    const n8nUrl = 'http://localhost:5678/webhook/webhook-whatsapp';
     const response = await fetch(n8nUrl, {
       method: 'POST',
       headers: {
@@ -15,6 +15,7 @@ exports.processChat = async (req, res) => {
       body: JSON.stringify({
         message,
         phone,
+        source: 'web',
         remoteJid: `${phone}@s.whatsapp.net`,
       }),
     });
