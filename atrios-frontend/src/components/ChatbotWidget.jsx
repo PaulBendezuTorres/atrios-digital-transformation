@@ -481,7 +481,7 @@ export default function ChatbotWidget() {
                   <Calendar size={16} /> 📅 Reservar Visita Técnica
                 </button>
                 <a
-                  href={`https://wa.me/51946937294?text=Hola%20Atrios%20Digital.%20Deseo%20cotizar%20camaras%20de%20seguridad.%20Mi%20telefono%20es%20${clientPhone}.`}
+                  href={`https://wa.me/51946937294?text=Hola%20Atrios%20Digital.%20Deseo%20cotizar%20camaras%20de%20seguridad.`}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ 
