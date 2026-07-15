@@ -50,7 +50,7 @@ export default function Footer() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <h4 style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '1.05rem', marginBottom: '4px' }}>Contacto</h4>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Phone size={16} color="#f5b700" /> <span>+51 960 310 542</span>
+            <Phone size={16} color="#f5b700" /> <span>+51 946 937 294</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Mail size={16} color="#f5b700" /> <span>ventas@atrios.pe</span>

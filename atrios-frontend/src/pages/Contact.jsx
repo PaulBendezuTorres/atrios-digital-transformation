@@ -218,7 +218,7 @@ export default function Contact() {
                   <MapPin color="#f5b700" size={20} /> <span>Jr. Bodegones 337, Santiago de Surco, Lima</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <Phone color="#f5b700" size={20} /> <span>+51 960 310 542</span>
+                  <Phone color="#f5b700" size={20} /> <span>+51 946 937 294</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <Mail color="#f5b700" size={20} /> <span>ventas@atrios.pe</span>

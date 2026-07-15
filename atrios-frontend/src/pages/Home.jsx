@@ -58,7 +58,7 @@ export default function Home() {
             Solicitar Cotización <ArrowRight size={20} />
           </a>
           <a
-            href="https://wa.me/51960310542?text=Hola%20Atrios%20Digital.%20Deseo%20cotizar%20servicios%20de%20ingenieria."
+            href="https://wa.me/51946937294?text=Hola%20Atrios%20Digital.%20Deseo%20cotizar%20servicios%20de%20ingenieria."
             target="_blank"
             rel="noopener noreferrer"
             className="btn-secondary"

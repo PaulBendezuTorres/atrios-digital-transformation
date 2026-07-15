@@ -5,8 +5,8 @@ export default function ChatbotWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [showBookingForm, setShowBookingForm] = useState(false);
   
-  // Datos del cliente para la conversación
-  const [clientPhone, setClientPhone] = useState(localStorage.getItem('atrios_client_phone') || '999888777');
+  // Datos del cliente para la conversación (Por defecto el número de Evolution API de Paul)
+  const [clientPhone, setClientPhone] = useState(localStorage.getItem('atrios_client_phone') || '51946937294');
   
   // Formulario de Reserva Rápida
   const [bookingName, setBookingName] = useState('');
@@ -204,7 +204,7 @@ export default function ChatbotWidget() {
                 <h4 style={{ fontSize: '0.95rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
                   Atrios Asistente <Sparkles size={14} color="#f5b700" />
                 </h4>
-                <span style={{ fontSize: '0.75rem', color: '#c2f9d8' }}>En línea • Gemini Inteligencia Artificial</span>
+                <span style={{ fontSize: '0.75rem', color: '#c2f9d8' }}>En línea • Asesor de IA</span>
               </div>
             </div>
             <button
@@ -259,7 +259,7 @@ export default function ChatbotWidget() {
                 >
                   <CheckCircle size={48} />
                   <h3 style={{ fontWeight: 700 }}>¡Reserva Exitosa!</h3>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>La orden ha sido guardada en la base de datos local PostgreSQL.</p>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Tu orden ha sido registrada correctamente en el sistema de Atrios.</p>
                 </div>
               ) : (
                 <form onSubmit={handleBookingSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -352,7 +352,7 @@ export default function ChatbotWidget() {
                     className="btn-primary" 
                     style={{ width: '100%', padding: '12px', justifyContent: 'center', background: '#f5b700', color: '#0b0f19', fontWeight: 700 }}
                   >
-                    {bookingLoading ? 'Registrando...' : 'Confirmar Reserva en Postgres'}
+                    {bookingLoading ? 'Registrando...' : 'Confirmar Reserva'}
                   </button>
                 </form>
               )}
@@ -478,10 +478,10 @@ export default function ChatbotWidget() {
                     gap: '6px'
                   }}
                 >
-                  <Calendar size={16} /> 📅 Reservar Visita Técnica (Postgres)
+                  <Calendar size={16} /> 📅 Reservar Visita Técnica
                 </button>
                 <a
-                  href={`https://wa.me/51999888777?text=Hola%20Atrios%20Digital.%20Deseo%20cotizar%20camaras%20de%20seguridad.%20Mi%20telefono%20es%20${clientPhone}.`}
+                  href={`https://wa.me/51946937294?text=Hola%20Atrios%20Digital.%20Deseo%20cotizar%20camaras%20de%20seguridad.%20Mi%20telefono%20es%20${clientPhone}.`}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ 
