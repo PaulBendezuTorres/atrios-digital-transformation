@@ -428,13 +428,13 @@ exports.chatWithAgent = async (phone, userMessage) => {
     [phone, userMessage]
   );
 
-  // 2. Cargar historial previo de la base de datos (últimas 15 interacciones)
+  // 2. Cargar historial previo de la base de datos (últimas 6 interacciones para ahorrar tokens)
   const historyRes = await pool.query(
     `SELECT remitente, mensaje FROM (
        SELECT remitente, mensaje, creado_en FROM historial_chats
        WHERE telefono = $1
        ORDER BY creado_en DESC
-       LIMIT 15
+       LIMIT 6
      ) sub ORDER BY creado_en ASC`,
     [phone]
   );
@@ -451,7 +451,7 @@ exports.chatWithAgent = async (phone, userMessage) => {
 
   // 3. Inicializar modelo de Gemini con sistema e instrucciones
   const model = genAI.getGenerativeModel({
-    model: "gemini-2.0-flash",
+    model: "gemini-3.1-flash-lite",
     systemInstruction: getSystemPrompt(),
     tools: [{
       functionDeclarations: [
@@ -476,7 +476,7 @@ exports.chatWithAgent = async (phone, userMessage) => {
   let responseText = "";
 
   // 6. Ciclo para resolver llamadas a herramientas (function calling) si existieran
-  const functionCalls = result.response.getFunctionCalls();
+  const functionCalls = typeof result.response.functionCalls === 'function' ? result.response.functionCalls() : null;
   if (functionCalls && functionCalls.length > 0) {
     const toolResults = [];
     for (const call of functionCalls) {
