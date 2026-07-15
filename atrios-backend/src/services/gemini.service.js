@@ -445,13 +445,13 @@ exports.chatWithAgent = async (phone, userMessage) => {
     [phone, userMessage]
   );
 
-  // 2. Cargar historial previo de la base de datos (últimas 6 interacciones para ahorrar tokens)
+  // 2. Cargar historial previo (últimos 4 mensajes para ahorrar tokens)
   const historyRes = await pool.query(
     `SELECT remitente, mensaje FROM (
        SELECT remitente, mensaje, creado_en FROM historial_chats
        WHERE telefono = $1
        ORDER BY creado_en DESC
-       LIMIT 6
+       LIMIT 4
      ) sub ORDER BY creado_en ASC`,
     [phone]
   );
@@ -472,12 +472,12 @@ exports.chatWithAgent = async (phone, userMessage) => {
   }
 
   // 3. Inicializar modelo de Gemini con sistema e instrucciones
-  let dynamicSystemInstruction = getSystemPrompt();
-  dynamicSystemInstruction += `\n\nREGLA ADICIONAL: El número de teléfono de la sesión de chat actual es "${phone}". NUNCA uses ni menciones este número en tus respuestas o saludos. Trata al cliente de forma neutral y cortés a menos que él se presente o te diga su nombre explícitamente en el chat actual.`;
+  const systemInstruction = getSystemPrompt() +
+    `\nNOTA: No menciones el número ${phone} en tus respuestas.`;
 
   const model = genAI.getGenerativeModel({
-    model: "gemini-3.1-flash-lite",
-    systemInstruction: dynamicSystemInstruction,
+    model: "gemini-2.0-flash-lite",
+    systemInstruction,
     tools: [{
       functionDeclarations: [
         getClientProfileDeclaration,
