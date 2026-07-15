@@ -14,7 +14,8 @@
       "position": [
         200,
         280
-      ]
+      ],
+      "webhookId": "atrios-ai-agent-webhook-id-2026"
     },
     {
       "parameters": {
@@ -47,9 +48,9 @@
         480
       ],
       "credentials": {
-        "googleGeminiSdkApi": {
-          "id": "gemini-api-cred-placeholder",
-          "name": "Google Gemini API Key"
+        "googlePalmApi": {
+          "id": "MgW9IuAlFtWDriTQ",
+          "name": "Google Gemini(PaLM) Api account"
         }
       }
     },
@@ -78,7 +79,7 @@
       },
       "id": "df293c4d-b9cf-4a3d-bc8e-10c9d7d90e0c",
       "name": "get_camera_catalog_tool",
-      "type": "@n8n/n8n-nodes-langchain.toolCustomCode",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
       "typeVersion": 1,
       "position": [
         600,
@@ -88,12 +89,12 @@
     {
       "parameters": {
         "name": "create_technical_ticket",
-        "description": "Registra un ticket de servicio técnico para instalación de cámaras cuando hayas recolectado los 3 datos obligatorios del cliente: Nombre Completo, Dirección Exacta y Teléfono/Celular.",
-        "jsCode": "const response = await fetch('http://atrios-n8n:5678/webhook/atrios-create-ticket-db', {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify({\n    nombre_completo: arg1,\n    direccion: arg2,\n    telefono: arg3,\n    detalles: arg4 || \"Instalación de cámaras de seguridad\"\n  })\n});\nconst data = await response.json();\nreturn JSON.stringify(data);"
+        "description": "Registra un ticket de servicio técnico para instalación de cámaras cuando hayas recolectado los 3 datos obligatorios del cliente: Nombre Completo, Dirección Exacta y Teléfono/Celular. El formato de entrada son las variables nombre_completo, direccion, telefono, detalles.",
+        "jsCode": "const response = await fetch('http://atrios-n8n:5678/webhook/atrios-create-ticket-db', {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify({\n    nombre_completo: query.nombre_completo,\n    direccion: query.direccion,\n    telefono: query.telefono,\n    detalles: query.detalles || \"Instalación de cámaras de seguridad\"\n  })\n});\nconst data = await response.json();\nreturn JSON.stringify(data);"
       },
       "id": "f293b4a2-e6d4-4fa2-bfbb-8f3a8b27376d",
       "name": "create_technical_ticket_tool",
-      "type": "@n8n/n8n-nodes-langchain.toolCustomCode",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
       "typeVersion": 1,
       "position": [
         730,
@@ -103,12 +104,12 @@
     {
       "parameters": {
         "name": "update_technical_ticket_evidence",
-        "description": "Registra la imagen de evidencia de finalización de un trabajo de instalación de cámaras y cierra el ticket cambiando su estado a 'Finalizado'. Requiere el identificador del cliente (nombre o teléfono) y la URL de la imagen (evidencia_url).",
-        "jsCode": "const response = await fetch('http://atrios-n8n:5678/webhook/atrios-close-ticket-db', {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify({\n    identificador: arg1,\n    evidencia_url: arg2\n  })\n});\nconst data = await response.json();\nreturn JSON.stringify(data);"
+        "description": "Registra la imagen de evidencia de finalización de un trabajo de instalación de cámaras y cierra el ticket cambiando su estado a 'Finalizado'. Requiere el identificador del cliente (nombre o teléfono) y la URL de la imagen (evidencia_url). El formato de entrada son las variables identificador, evidencia_url.",
+        "jsCode": "const response = await fetch('http://atrios-n8n:5678/webhook/atrios-close-ticket-db', {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify({\n    identificador: query.identificador,\n    evidencia_url: query.evidencia_url\n  })\n});\nconst data = await response.json();\nreturn JSON.stringify(data);"
       },
       "id": "e394b4a3-f7e5-5fa3-cfcc-8f4b9c28487e",
       "name": "update_technical_ticket_evidence_tool",
-      "type": "@n8n/n8n-nodes-langchain.toolCustomCode",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
       "typeVersion": 1,
       "position": [
         860,
@@ -128,11 +129,12 @@
       "position": [
         200,
         700
-      ]
+      ],
+      "webhookId": "atrios-create-ticket-db-webhook-id-2026"
     },
     {
       "parameters": {
-        "operation": "execute",
+        "operation": "executeQuery",
         "query": "=WITH cliente_insert AS (\n  INSERT INTO clientes (nombre_completo, telefono, direccion)\n  VALUES ('{{ $json.body.nombre_completo }}', '{{ $json.body.telefono }}', '{{ $json.body.direccion }}')\n  ON CONFLICT (telefono) \n  DO UPDATE SET nombre_completo = EXCLUDED.nombre_completo, direccion = EXCLUDED.direccion\n  RETURNING id_cliente\n)\nINSERT INTO servicios_tecnicos (id_cliente, detalles_requerimiento, tipo_servicio, estado_servicio)\nSELECT id_cliente, '{{ $json.body.detalles }}', 'Instalación Cámaras', 'Pendiente'\nFROM cliente_insert\nRETURNING id_servicio;"
       },
       "id": "da682b1d-c89b-478a-a4c3-631d8e7b901b",
@@ -145,8 +147,8 @@
       ],
       "credentials": {
         "postgres": {
-          "id": "postgres-cred-placeholder",
-          "name": "Postgres local Atrios"
+          "id": "bS7LLb5DqObO5Yil",
+          "name": "Postgres account"
         }
       }
     },
@@ -176,11 +178,12 @@
       "position": [
         200,
         880
-      ]
+      ],
+      "webhookId": "atrios-close-ticket-db-webhook-id-2026"
     },
     {
       "parameters": {
-        "operation": "execute",
+        "operation": "executeQuery",
         "query": "=UPDATE servicios_tecnicos\nSET estado_servicio = 'Finalizado', evidencia_url = '{{ $json.body.evidencia_url }}', actualizado_en = CURRENT_TIMESTAMP\nWHERE id_cliente = (\n    SELECT id_cliente FROM clientes \n    WHERE telefono = '{{ $json.body.identificador }}' \n       OR nombre_completo ILIKE '%' || '{{ $json.body.identificador }}' || '%'\n    LIMIT 1\n)\nRETURNING id_servicio;"
       },
       "id": "ea682b1e-d89c-5f8b-bd89-10d9e8c8b01c",
@@ -193,8 +196,8 @@
       ],
       "credentials": {
         "postgres": {
-          "id": "postgres-cred-placeholder",
-          "name": "Postgres local Atrios"
+          "id": "bS7LLb5DqObO5Yil",
+          "name": "Postgres account"
         }
       }
     },
@@ -324,7 +327,7 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1"
   },

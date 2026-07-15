@@ -8,7 +8,7 @@ volumes:
   n8n_storage:
   evolution_storage:
   postgres_data:
-  nocodb_storage:
+  # nocodb_storage:
 
 services:
   # 1. Base de Datos Única (PostgreSQL local - El motor de Atrios)
@@ -27,21 +27,21 @@ services:
     networks:
       - atrios-network
 
-  # 2. El Emulador del CRM (NocoDB) - Interfaz para Carlos y Juan
-  nocodb:
-    image: nocodb/nocodb:latest
-    container_name: atrios-nocodb-crm
-    restart: always
-    ports:
-      - "8000:8080"
-    environment:
-      - NC_DB=pg://postgres-db:5432?u=${POSTGRES_USER:-atrios_admin}&p=${POSTGRES_PASSWORD:-AtriosSecure2026!}&d=${POSTGRES_DB:-atrios_crm}
-    volumes:
-      - nocodb_storage:/usr/app/data
-    depends_on:
-      - postgres-db
-    networks:
-      - atrios-network
+  # 2. El Emulador del CRM (NocoDB) - Interfaz para Carlos y Juan [DESACTIVADO]
+  # nocodb:
+  #   image: nocodb/nocodb:latest
+  #   container_name: atrios-nocodb-crm
+  #   restart: always
+  #   ports:
+  #     - "8000:8080"
+  #   environment:
+  #     - NC_DB=pg://postgres-db:5432?u=${POSTGRES_USER:-atrios_admin}&p=${POSTGRES_PASSWORD:-AtriosSecure2026!}&d=${POSTGRES_DB:-atrios_crm}
+  #   volumes:
+  #     - nocodb_storage:/usr/app/data
+  #   depends_on:
+  #     - postgres-db
+  #   networks:
+  #     - atrios-network
 
   # 3. El Cerebro (n8n con soporte para Agentes de IA)
   n8n:

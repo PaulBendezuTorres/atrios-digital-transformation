@@ -14,7 +14,8 @@
       "position": [
         250,
         350
-      ]
+      ],
+      "webhookId": "evolution-api-webhook-id-2026"
     },
     {
       "parameters": {
@@ -22,19 +23,19 @@
           "options": {
             "caseSensitive": true,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "none"
           },
           "conditions": [
             {
               "id": "c138b1d9-5f25-4c07-b248-cbdfa688d011",
-              "leftValue": "={{ $json.data?.key?.fromMe }}",
-              "rightValue": "true",
+              "leftValue": "={{ $json.body.data?.key?.fromMe }}",
+              "rightValue": true,
               "operator": "notEquals",
               "type": "boolean"
             },
             {
               "id": "f5e93df1-1bc8-43d9-be1d-8c46002fde0e",
-              "leftValue": "={{ $json.event }}",
+              "leftValue": "={{ $json.body.event }}",
               "rightValue": "messages.upsert",
               "operator": "equals",
               "type": "string"
@@ -59,7 +60,7 @@
         "url": "http://atrios-n8n:5678/webhook/atrios-ai-agent",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"message\": \"{{ $json.data.message?.conversation || $json.data.message?.extendedTextMessage?.text || $json.data.message?.imageMessage?.caption || \\\"\\\" }}\",\n  \"phone\": \"{{ $json.data.key.remoteJid.split('@')[0] }}\",\n  \"remoteJid\": \"{{ $json.data.key.remoteJid }}\"\n}",
+        "jsonBody": "={\n  \"message\": \"{{ $json.body.data?.message?.conversation || $json.body.data?.message?.extendedTextMessage?.text || $json.body.data?.message?.imageMessage?.caption || \\\"\\\" }}\",\n  \"phone\": \"{{ $json.body.data?.key?.remoteJid?.split('@')?.[0] }}\",\n  \"remoteJid\": \"{{ $json.body.data?.key?.remoteJid }}\"\n}",
         "options": {}
       },
       "id": "cd0b82f0-7b24-4f0e-8ad4-b49de8a3b5a7",
@@ -75,6 +76,15 @@
       "parameters": {
         "method": "POST",
         "url": "http://atrios-whatsapp-api:8080/message/sendText/atrios_instance",
+        "sendHeaders": true,
+        "headersTemplates": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "AtriosGlobalAPIKey2026"
+            }
+          ]
+        },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"number\": \"{{ $json.phone }}\",\n  \"options\": {\n    \"delay\": 1200,\n    \"presence\": \"composing\"\n  },\n  \"textMessage\": {\n    \"text\": \"{{ $json.response }}\"\n  }\n}",
@@ -125,7 +135,7 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1"
   },

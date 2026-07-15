@@ -32,9 +32,9 @@ El proyecto académico plantea un stack en la nube. Para la simulación del MVP 
 | :--- | :--- | :--- |
 | **Inteligencia Artificial**<br>Google AI Studio API (Gemini) | **Google Gemini Chat Model** en n8n | Analizar intenciones de chat, traducciones automáticas y extracción de datos del cliente. |
 | **Automatización**<br>n8n Cloud | **n8n Local** (`atrios-n8n`) | El cerebro orquestador que interconecta la mensajería, la IA, el CRM y la base de datos. |
-| **Gestión de Clientes (CRM)**<br>Zoho CRM | **NocoDB** (`atrios-nocodb-crm`) | Panel visual spreadsheet-like para Carlos (Coordinador) y Juan (Técnico) para gestionar el estado de tickets. |
+| **Gestión de Clientes (CRM)**<br>Zoho CRM | **Portal Web Atrios (React/Node)** | Panel visual a medida para Carlos (Coordinador) y Juan (Técnico) para gestionar el estado de tickets y chatear con la IA. |
 | **Comunicación con Clientes**<br>WhatsApp Business API | **Evolution API** (`atrios-whatsapp-api`) | API local para conectar una cuenta de WhatsApp real mediante lectura de código QR y capturar eventos. |
-| **Base de Datos y Almacenamiento**<br>Firebase/Supabase DB & Storage | **PostgreSQL 15** (`atrios-postgres`) e indexado de NocoDB Storage | Persistencia estructurada de tablas de negocio y almacenamiento local de fotos de evidencia. |
+| **Base de Datos y Almacenamiento**<br>Firebase/Supabase DB & Storage | **PostgreSQL 15** (`atrios-postgres`) y Almacenamiento Local | Persistencia estructurada de tablas de negocio y registro local de fotos de evidencia. |
 
 ---
 
@@ -93,38 +93,38 @@ Su canal de interacción exclusivo es WhatsApp. No usa apps ni páginas web comp
 ---
 
 ### 👥 ACTOR 2: EL COORDINADOR OPERATIVO (CARLOS)
-Utiliza la interfaz visual web de NocoDB conectada a la base de datos PostgreSQL para la gestión del negocio.
+Utiliza la interfaz de administración del portal web conectada a la base de datos PostgreSQL para la gestión del negocio.
 
 #### Caso de Uso 2.1: Asignar y despachar órdenes de trabajo
 * **Flujo Técnico Real:**
-  1. Carlos inicia sesión en el panel web de NocoDB (`http://localhost:8000`) y visualiza las solicitudes en estado `Pendiente` (registradas automáticamente por el bot).
-  2. Revisa la disponibilidad de técnicos y selecciona al técnico correspondiente (ej. Juan).
-  3. Al asignarlo en la UI, NocoDB ejecuta un `UPDATE` en la tabla `servicios_tecnicos` de PostgreSQL asociando el `id_tecnico` de Juan y cambiando el estado a `Asignado`.
-  4. *(Opcional)* n8n detecta la asignación y le envía una notificación automática al WhatsApp personal de Juan con la hoja de ruta y la dirección.
+  1. Carlos abre la sección de administración del Portal Web (`http://localhost:3000/admin`) y visualiza las solicitudes en estado `Pendiente` (registradas automáticamente por el bot o el chat web).
+  2. Revisa la disponibilidad de técnicos y selecciona al técnico correspondiente (ej. Juan) desde el selector de la UI.
+  3. Al presionar "Guardar", la web ejecuta un `PUT` al backend el cual actualiza en PostgreSQL asociando el `id_tecnico` de Juan y cambiando el estado a `Asignado`.
+  4. *(Opcional)* El sistema notifica al WhatsApp personal de Juan con la hoja de ruta y la dirección.
 
 #### Caso de Uso 2.2: Control de calidad y auditoría postventa
 * **Flujo Técnico Real:**
-  1. Carlos accede al historial de un cliente en NocoDB que reporta soporte o reclama problemas de visualización.
-  2. El sistema consulta PostgreSQL y recupera la URL de la imagen de evidencia almacenada localmente.
-  3. Carlos visualiza el ángulo de visión original para determinar si fue manipulación del cliente o una falla de instalación, optimizando la toma de decisiones de la garantía.
+  1. Carlos accede al historial de un cliente en la sección `/admin` que reporta soporte o reclama problemas de visualización.
+  2. El sistema consulta PostgreSQL y recupera la URL de la imagen de evidencia almacenada.
+  3. Carlos visualiza el ángulo de visión original para determinar si fue manipulación del cliente o una falla de instalación.
 
 ---
 
 ### 👥 ACTOR 3: EL TÉCNICO DE CAMPO (JUAN)
-Su interacción es móvil a través del sitio responsivo móvil de NocoDB (simulando una PWA) o enviando las evidencias directamente por WhatsApp.
+Su interacción es móvil a través de la sección de operarios (`http://localhost:3000/tecnico`) del Portal Web.
 
 #### Caso de Uso 3.1: Visualizar hoja de ruta e iniciar servicio
 * **Flujo Técnico Real:**
-  1. Juan abre la vista móvil de NocoDB en su celular y consulta su lista de instalaciones asignadas del día.
-  2. Al llegar al domicilio del cliente, presiona "Iniciar Servicio".
-  3. El sistema actualiza en PostgreSQL el estado de la orden a `En Proceso`, permitiendo a Carlos visualizar el estado de avance en tiempo real.
+  1. Juan abre la vista móvil de operarios del Portal Web en su celular (`http://localhost:3000/tecnico`) e ingresa su nombre en el selector.
+  2. Consulta su lista de instalaciones asignadas del día y al llegar al domicilio presiona "Iniciar Trabajo".
+  3. El sistema actualiza en PostgreSQL el estado de la orden a `En Proceso`.
 
 #### Caso de Uso 3.2: Registrar evidencias y cerrar orden técnica
 * **Flujo Técnico Real:**
   1. Juan finaliza la instalación, cableado y calibración de las cámaras de seguridad.
-  2. **Opción A (CRM Móvil):** Presiona "Cerrar Servicio" en la vista de NocoDB, se abre el input de adjunto, toma la foto de los monitores con el encuadre final y la sube. NocoDB la almacena en el almacenamiento local y guarda la URL en el registro.
-  3. **Opción B (WhatsApp):** Envía la fotografía directamente por WhatsApp con el pie de texto: *"Trabajo de instalación de cámaras finalizado para el cliente [Nombre/Teléfono]"*.
-  4. En ambos flujos, PostgreSQL actualiza el registro a `Finalizado`, n8n detecta el cierre y gatilla un mensaje automático al WhatsApp del cliente confirmando el fin de los trabajos y el inicio del periodo de garantía de servicio.
+  2. **Opción A (Portal Móvil):** Presiona "Cerrar & Evidencia" en la vista de operarios, introduce la URL de evidencia de la foto y finaliza. La web actualiza en PostgreSQL la URL y el estado a `Finalizado`.
+  3. **Opción B (WhatsApp):** Envía la fotografía directamente por WhatsApp. El Agente de IA detecta el cierre y ejecuta la herramienta de cierre actualizando PostgreSQL.
+  4. En ambos flujos, PostgreSQL se actualiza, n8n detecta el cierre y gatilla un mensaje automático de confirmación de garantía de servicio al cliente.
 
 ---
 
